@@ -15,159 +15,140 @@ INCLUDE io.h            ; header file for input/output
 .STACK 4096
 
 .DATA
+buffer			BYTE	11	DUP(?)
 
-; NUMERIC & INPUT STRING DATA
+longJumps		DWORD	3	DUP(?)		;Long Jumps array
+longJumpSum		DWORD	0			;Long Jump var to hold summation of all jumps, same for other 2
 
-inputBuffer			BYTE	40 DUP (?)
+highJumps		DWORD	3	DUP(?)
+highJumpSum		DWORD	0
 
+shotPuts		DWORD	3	DUP(?)
+shotPutSum		DWORD	0
 
-longJump			DWORD	?							; Long jump data, labels, avg, counter
-longJumpAvg			DWORD	?
-longJumpPrompt			BYTE	"Enter your long jump #"
-counterLbl			BYTE	11 DUP (?), 0
+ljPrompt		BYTE	"Enter your long jump:"
+ljCount			BYTE	11	DUP(?), 0
+hjPrompt		BYTE	"Enter your high jump:"
+hjCount			BYTE	11	DUP(?), 0
+spPrompt		BYTE	"Enter your shot put:"
+spCount			BYTE	11	DUP(?)
 
-highJump			DWORD	?							; High jump data, labels, avg, counter
-highJumpAvg			DWORD	?
-highJumpPrompt			BYTE	"Enter your high jump #"
-counterLbl2			BYTE	11 DUP (?), 0		
+longJumpAvg		DWORD	?
+highJumpAvg		DWORD	?
+shotPutAvg		DWORD	?
 
-shotPut				DWORD	?							; Shot put data, labels, avg, counter
-shotPutAvg			DWORD	?
-shotPutPrompt			BYTE	"Enter your shot-put #"
-counterLbl3			BYTE	11 DUP (?), 0
+sum			DWORD	?
 
-weightedTotal			DWORD	?							; Grand total
+results			BYTE	"Results: ", 0
+longJumpLbl		BYTE	"Long Jump: "
+longJumpAvgStr		BYTE	11	DUP(?), 0dh, 0ah
 
+highJumpAvgLbl		BYTE	"High Jump Total:"
+highJumpAvgStr		BYTE	11 DUP (?), 0dh, 0ah
 
-;OUTPUT LABELS AND STRINGS
+shotPutAvgLbl		BYTE	"Shot Put Total:"
+shotPutAvgStr		BYTE	11 DUP (?), 0dh, 0ah
 
-results				BYTE	"RESULTS: ", 0
+weightedTotalLbl	BYTE	"Grand total: "
+weightedTotalStr	BYTE	11 DUP (?), 0
 
-longJumpAvgLbl			BYTE	"Long Jump Total: "
-longJumpAvgStr			BYTE	11 DUP (?), 0dh, 0ah
-
-highJumpAvgLbl			BYTE	"High Jump Total:"
-highJumpAvgStr			BYTE	11 DUP (?), 0dh, 0ah
-
-shotPutAvgLbl			BYTE	"Shot Put Total:"
-shotPutAvgStr			BYTE	11 DUP (?), 0dh, 0ah
-
-weightedTotalLbl		BYTE	"Grand total: "
-weightedTotalStr		BYTE	11 DUP (?), 0
+; EAX register used for general arithmetic
+; EBX register used for incrementing counter (up from 0)
+; ECX register used for looping (counting downward from 0)
+; EDX register used for multiplication/division factors
+; 
+; Arrays aren't really used in this program to the extent they
+; should; they're only for storing the results. The average is calculated 
+; as the values are inserted (sum is incremented by a counter).
 
 .CODE
 _MainProc PROC
+				;Long Jumps
+				lea		esi, longJumps			; Loads in long jumps array to esi
+				mov		ecx, 3				; sets counter to 3
+				mov		ebx, 1				; Display counter, opposite of ecx
 
-		mov		ecx, 1						; Moves initial counter (1) into ecx register
+LJLoop:				dtoa		ljCount, ebx
+				input		ljPrompt, buffer, 40		; read ASCII characters
+				atod		buffer				; Converts buffer numbers to digits
+				add		DWORD PTR[esi], eax		; Takes converted chars from eax and stores them in esi dereferenced array
+				add		esi, 4				; offsets the pointer to the array
+				inc		ebx				; Increments display counter variable (incrementing up)
+				add		longJumpSum, eax		; Adds eax to the current long jump sum 
+				loop	LJLoop
+			
 
-		; LONG JUMPS
+				; High Jumps
+				lea		esi, highJumps			; Loads in high jumps array to esi
+				mov		ecx, 3				; Resets counter 
+				mov		ebx, 1
 
-		dtoa		counterLbl, ecx					; Converts current counter to ascii
-		input		longJumpPrompt, inputBuffer, 40	; Input first long jump 
-		atod		inputBuffer						; Converts the input to integer
-		mov		longJump, eax					; Moves first long jump from reg to memory
-		inc		ecx								; Increments counter in ecx register
+HJLoop:				dtoa		hjCount, ebx			; Resets display counter
+				input		hjPrompt, buffer, 40	
+				atod		buffer		
+				add		DWORD PTR[esi], eax
+				add		esi, 4
+				inc		ebx
+				add		highJumpSum, eax		; Adds eax to the current high jump sum
+				loop	HJLoop
 
-		dtoa		counterLbl, ecx
-		input		longJumpPrompt, inputBuffer, 40	; Input second long jump 
-		atod		inputBuffer						; Converts the input to integer
-		add		longJump, eax					; Moves second long jump from reg to memory
-		inc		ecx
 
-		dtoa		counterLbl, ecx
-		input		longJumpPrompt, inputBuffer, 40	; Input third long jump 
-		atod		inputBuffer						; Converts the input to integer
-		add		longJump, eax					; Moves third long jump from reg to memory
-		inc		ecx
+				; Shot Puts
+				lea		esi, shotPuts			; Loads in shot puts array to esi
+				mov		ecx, 3
+				mov		ebx, 1
 
-		cdq										; Prepares eax and edx for 32-bit division
-												; for quotient and remainder
+SPLoop:				dtoa		spCount, ebx
+				input		spPrompt, buffer, 40
+				atod		buffer
+				add		DWORD PTR[esi], eax
+				add		esi, 4
+				inc		ebx
+				add		shotPutSum, eax			; Adds eax to the current shot put sum
+				loop	SPLoop
+				
 
-		mov		eax, longJump					; Moves the average into eax register as dividend
-		mov		ebx, 3							
-		idiv		ebx								; Divides average by 3 trials
+				;Long Jump Average
+				cdq
+				mov		eax, longJumpSum
+				mov		ebx, 3
+				idiv		ebx				; Divides sum by 3 to calc avg
+				mov		ebx, 
+				imul		ebx				; Multiplies quotient by factor of 7
+				dtoa		longJumpAvgStr, eax		; Long Jump avg to ascii
+				add		sum, eax			; Moves longJumpSum to eax for total summation
 
-		mov		ebx, 7							
-		imul		ebx								; Multiply long jump avg by 7
 
-		mov		longJumpAvg, eax				; Grabs new factored average and stores it in memory
-		mov		weightedTotal, eax				; Moves the factored average to the running total
-		dtoa		longJumpAvgStr, eax				; Converts the factored average into its appropriate ascii representation
-		mov		ecx, 1							; Resets counter
+				;High Jump Average
+				cdq
+				mov		eax, highJumpSum
+				mov		ebx, 3
+				idiv		ebx				; Divides sum by 3 to calc avg
+				mov		ebx, 4
+				imul		ebx				; Multiplies quotient by factor of 7
+				dtoa		highJumpAvgStr, eax		; Converts high jump avg to ascii
+				add		sum, eax			; Moves highJumpSum to eax for total summation
 
-		; HIGH JUMPS
 
-		dtoa		counterLbl2, ecx
-		input		highJumpPrompt, inputBuffer, 40	 ; First high jump trial
-		atod		inputBuffer
-		add		highJump, eax
-		inc		ecx
+				;Shot put Average
+				cdq
+				mov		eax, shotPutSum
+				mov		ebx, 3
+				idiv		ebx				; Divides sum by 3 to calc avg
+				mov		ebx, 5
+				imul		ebx				; Multiplies quotient by factor of 7
+				dtoa		shotPutAvgStr, eax		; Converts shot put avg to ascii	
+				add		sum, eax			; Moves shotPutSum to eax for total summation
 
-		dtoa		counterLbl2, ecx
-		input		highJumpPrompt, inputBuffer, 40	 ; Second high jump trial
-		atod		inputBuffer
-		add		highJump, eax
-		inc		ecx
 
-		dtoa		counterLbl2, ecx
-		input		highJumpPrompt, inputBuffer, 40  ; Third high jump trial
-		atod		inputBuffer
-		add		highJump, eax
-		inc		ecx
+				; Moves sum to label
+				mov		eax, sum
+				dtoa		weightedTotalStr, eax 
 
-		cdq
-		mov		eax, highJump					; Moves the average into eax register as dividend
-		mov		ebx, 3    						
-		idiv		ebx								; Divides average by 3 trials
+				output 		results, longJumpLbl		; Outputs results
 
-		mov		ebx, 4							
-		imul		ebx								; Multiply high jump avg by 4
-
-		mov		highJumpAvg, eax				; Grabs new factored average and stores it in memory
-		add		weightedTotal, eax				; Adds on the shot put factored average to our running total
-		dtoa		highJumpAvgStr, eax				; Converts high jump avg to ascii
-		mov		ecx, 1
-
-		; SHOT-PUT 
-
-		dtoa		counterLbl3, ecx
-		input		shotPutPrompt, inputBuffer, 40	; First shot-put trial
-		atod		inputBuffer
-		mov		shotPut, eax
-		inc		ecx
-
-		dtoa		counterLbl3, ecx
-		input		shotPutPrompt, inputBuffer, 40	; Second shot-put trial
-		atod		inputBuffer
-		add		shotPut, eax
-		inc		ecx
-
-		dtoa		counterLbl3, ecx
-		input		shotPutPrompt, inputBuffer, 40	; Third shot-put trial
-		atod		inputBuffer
-		add		shotPut, eax
-		inc		ecx
-
-		cdq
-		mov		eax, shotPut					; Moves the average into eax register as dividend
-		mov		ebx, 3    						
-		idiv		ebx								; Divides average by 3 trials
-
-		mov		ebx, 5							
-		imul		ebx								; Multiply high jump avg by 5
-
-		mov		shotPutAvg, eax					; Grabs new factored average and stores it in memory
-		add		weightedTotal, eax				; Adds shot put avg to running total
-		dtoa		shotPutAvgStr, eax
-
-		mov		eax, weightedTotal				; Moves grand total to register to print
-		dtoa		weightedTotalStr, eax			; Converts grand total that is in eax register to ascii
-
-        	output  	results, longJumpAvgLbl         ; Outputs results label and starts printing strings
-												; until last string with null-termination is reached.
-        mov     eax, 0					; exit with return code 0
+				
+        mov     eax, 0								; exit with return code 0
         ret
-
 _MainProc ENDP
 END										; end of source code
-
