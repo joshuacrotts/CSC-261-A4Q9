@@ -113,7 +113,7 @@ SPLoop:				dtoa		spCount, ebx
 				mov		eax, longJumpSum
 				mov		ebx, 3
 				idiv		ebx				; Divides sum by 3 to calc avg
-				mov		ebx, 
+				mov		ebx, 7
 				imul		ebx				; Multiplies quotient by factor of 7
 				dtoa		longJumpAvgStr, eax		; Long Jump avg to ascii
 				add		sum, eax			; Moves longJumpSum to eax for total summation
